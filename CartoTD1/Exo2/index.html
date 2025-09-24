@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Géolocalisation avec Leaflet</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
@@ -10,18 +11,15 @@
         .section { margin-bottom: 20px; }
     </style>
 </head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
 <body>
-        <div class="section">
-        <h2>Résultat watchPosition()</h2>
+    <div class="section">
+        <h2>Géolocalisation avec Leaflet</h2>
         <pre id="watch"></pre>
     </div>
     <div id="map"></div>
-</body>
+    <button id="btnChange">Changer la carte</button>
+
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="geoloc.js"></script>
-
+</body>
 </html>
