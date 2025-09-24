@@ -67,7 +67,22 @@ function success(pos) {
 function error(err) {
     console.warn(`ERREUR (${err.code}): ${err.message}`);
 }
+var geojsonUrl = 'https://github.com/gregoiredavid/france-geojson/blob/master/arrondissements.geojson';
 
+
+fetch(geojsonUrl)
+    .then(response => response.json())
+    .then(data => {
+        L.geoJSON(data, {
+            style: { color: 'blue', weight: 2, fillOpacity: 0.1 },
+            onEachFeature: function(feature, layer) {
+                if(feature.properties && feature.properties.nom) {
+                    layer.bindPopup(feature.properties.nom);
+                }
+            }
+        }).addTo(map);
+    })
+    .catch(err => console.error("Erreur GeoJSON :", err));
 navigator.geolocation.getCurrentPosition(success, error);
 
 //Generé
