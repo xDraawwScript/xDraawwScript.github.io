@@ -16,6 +16,10 @@ const box = BABYLON.MeshBuilder.CreateBox("box",{ size: 1 }, scene);
 box.position.x=-5;
 box.material=material;
 
+scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
+scene.fogDensity = 0.02; 
+scene.fogColor = new BABYLON.Color3(0.9,0.9,0.9); 
+
 BABYLON.SceneLoader.Append(
   "./", 
   "hl.glb",                      
