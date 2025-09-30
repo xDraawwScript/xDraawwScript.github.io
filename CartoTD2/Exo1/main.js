@@ -48,8 +48,8 @@ window.addEventListener('devicemotion', (event) => {
     cube.position.x=ax;
     cube.position.y=ay;
     if (rose){
-        rose.position.x =ax -5;
-        rose.position.y = ay- 5;
+        rose.position.x =ax -2;
+        rose.position.y = ay- 2;
     }
 });
 
