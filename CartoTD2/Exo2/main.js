@@ -8,7 +8,9 @@ const scene = new BABYLON.Scene(engine);
 const camera = new BABYLON.ArcRotateCamera("Camera",1,1,10,new BABYLON.Vector3(0, 0, 0),scene);
 camera.attachControl(canvas, true);
 
-const light = new BABYLON.HemisphericLight("light1",new BABYLON.Vector3(0, 1, 0),scene);
+const dirLight = new BABYLON.DirectionalLight("dirLight",new BABYLON.Vector3(-1, -2, -1), scene);
+dirLight.position = new BABYLON.Vector3(5, 10, 5);
+dirLight.intensity = 1.0;
 
 const material = new BABYLON.StandardMaterial("boxMaterial", scene);
 material.diffuseTexture = new BABYLON.Texture("stone.png", scene);
