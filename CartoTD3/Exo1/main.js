@@ -53,6 +53,14 @@ if ("geolocation" in navigator) {
 }else{
     console.error("geoloc non supportée");
 }
+
+function createFlagIcon(flagUrl) {
+    return L.icon({
+        iconUrl:flagUrl,iconSize:[25,15], iconAnchor:[12,7], 
+    });}
+
+const flags= []
+
 function addFlag(lat, lon, flagUrl){
   const pos = latLonToCartesian(lat, lon, 1.02);
 
@@ -63,7 +71,10 @@ function addFlag(lat, lon, flagUrl){
   const flag =new THREE.Mesh(flagGeo, flagMat);
   flag.position.copy(pos);
   flag.lookAt(new THREE.Vector3(0,0,0)); //orientation drapeaux
+  flag.userData = { lat, lon };
+
   scene.add(flag);
+  flags.push(flag);
 }
 async function loadCountries(){
     const response = await fetch('https://restcountries.com/v3.1/all?fields=name,latlng,flags')
@@ -74,6 +85,7 @@ async function loadCountries(){
         const name = country.name.common;
         if (latlng && flagUrl) {
           addFlag(latlng[0], latlng[1], flagUrl, name);
+          const marker = L.marker([latlng[0], latlng[1]], { icon: createFlagIcon(flagUrl) }).addTo(map)
         }
     });
 }
@@ -101,8 +113,19 @@ map.on('click',(e)=> {
 });
 
 
-const mouse = new THREE.Vector2();
+const raycaster=new THREE.Raycaster();
+const mouse =new THREE.Vector2();
+renderer.domElement.addEventListener('click',(event) => {
+    const rect =renderer.domElement.getBoundingClientRect();
 
-renderer.domElement.addEventListener('click', (event) => {
-    //a finir
+    // calcul mouse généré
+    mouse.x=((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(flags);
+    const flag = intersects[0].object;
+    const { lat, lon } = flag.userData;
+    map.setView([lat, lon], 4);
 });
