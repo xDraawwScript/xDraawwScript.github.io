@@ -41,9 +41,9 @@ function latLonToCartesian(lat, lon, radius = 1) { // Générée par ia
 if ("geolocation" in navigator) {
   navigator.geolocation.getCurrentPosition((position) => {
     const lat = position.coords.latitude;
-    const lon = position.coords.longitude;Z
+    const lon = position.coords.longitude;
     const markerPos = latLonToCartesian(lat,lon,1.02);
-    const markerGeo = new THREE.SphereGeometry(0.02, 8, 8);
+    const markerGeo = new THREE.SphereGeometry(0.02, 8, 88);
     const markerMat = new THREE.MeshBasicMaterial({color: 0xff0000 });
     const marker = new THREE.Mesh(markerGeo, markerMat);
     marker.position.copy(markerPos);
