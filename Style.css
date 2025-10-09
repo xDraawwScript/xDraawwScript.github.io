@@ -76,3 +76,21 @@ h1 {
     background-color: #5a5a5a;
     color: #ffffff;
 }
+/* spotify */
+.spotify-bubble {
+  display: inline-block;
+  background: linear-gradient(135deg, #1db954, #1ed760);
+  color: #fff;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 50px;
+  text-decoration: none;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.spotify-bubble:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
