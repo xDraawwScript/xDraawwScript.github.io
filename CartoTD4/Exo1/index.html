@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Full-AI Globe 🌍</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script type="importmap">
+{
+"imports": {
+"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; display: flex; height: 100vh; background: #000; color: #fff; }
+#panel { width: 340px; background: #0f1724; display: flex; flex-direction: column; padding: 10px; }
+#map { width: 30vw; height: 100vh; }
+#globe { flex: 1; height: 100vh; }
+#info { margin-top: 10px; overflow-y: auto; flex: 1; }
+input, button { margin: 6px 0; padding: 8px; border-radius: 6px; border: none; font-size: 14px; }
+input { width: 100%; }
+button { background: #2563eb; color: white; cursor: pointer; }
+button:hover { background: #1d4ed8; }
+footer { margin-top: auto; font-size: 12px; opacity: .7; text-align: center; }
+</style>
+</head>
+<body>
+<aside id="panel">
+<input id="search" placeholder="🔍 Rechercher un pays..." />
+<div id="info">
+<h2 id="country-name">Sélectionnez un pays</h2>
+<div id="country-summary">Aucun résumé pour l'instant.</div>
+<div id="country-details"></div>
+<button id="ai-summary">🧠 Résumé </button>
+<button id="speak">🔊 Lire</button>
+</div>
+<footer>Full-AI Globe © 2025</footer>
+</aside>
+
+
+<div id="map"></div>
+<div id="globe"></div>
+
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
