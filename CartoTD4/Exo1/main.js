@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// --- Sélecteurs DOM ---
+// --- DOM ---
 const globeContainer = document.getElementById('globe');
 const mapContainer = document.getElementById('map');
 const infoName = document.getElementById('country-name');
@@ -11,10 +11,9 @@ const aiBtn = document.getElementById('ai-summary');
 const speakBtn = document.getElementById('speak');
 const searchInput = document.getElementById('search');
 
-// --- Scène Three.js ---
+// --- Scène ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
-
 const camera = new THREE.PerspectiveCamera(45, globeContainer.clientWidth / globeContainer.clientHeight, 0.1, 1000);
 camera.position.z = 2.5;
 
@@ -40,7 +39,6 @@ controls.maxDistance = 6;
 const loader = new THREE.TextureLoader();
 const earthTex = loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
 const cloudsTex = loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
-
 const earth = new THREE.Mesh(
   new THREE.SphereGeometry(1, 128, 128),
   new THREE.MeshPhongMaterial({ map: earthTex })
@@ -66,7 +64,7 @@ const atmosphere = new THREE.Mesh(
 );
 scene.add(atmosphere);
 
-// --- Conversion lat/lon -> coord cartésienne ---
+// --- LatLon -> Cartesian ---
 function latLonToCartesian(lat, lon, radius = 1) {
   const phi = THREE.MathUtils.degToRad(90 - lat);
   const theta = THREE.MathUtils.degToRad(lon + 180);
@@ -76,7 +74,7 @@ function latLonToCartesian(lat, lon, radius = 1) {
   return new THREE.Vector3(x, y, z);
 }
 
-// --- Pays & drapeaux ---
+// --- Pays / drapeaux / capitales ---
 const flags = [];
 const capitalsDots = [];
 let countries = [];
@@ -89,17 +87,15 @@ async function loadCountries() {
     if (!c.latlng) return;
     const [lat, lon] = c.latlng;
 
-    // --- Drapeaux ---
+    // Drapeaux
     const tex = new THREE.TextureLoader().load(c.flags.png);
-    const flag = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.12, 0.07),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide })
-    );
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.07), mat);
     flag.userData = { country: c, lat, lon };
     scene.add(flag);
     flags.push(flag);
 
-    // --- Capitales (points lumineux) ---
+    // Capitales
     if (c.capital) {
       const dot = new THREE.Mesh(
         new THREE.SphereGeometry(0.01, 6, 6),
@@ -118,16 +114,52 @@ const map = L.map(mapContainer).setView([0, 0], 2);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 5 }).addTo(map);
 map.on('click', e => focusLatLon(e.latlng.lat, e.latlng.lng));
 
-function focusLatLon(lat, lon, distance = 2.2) {
-  const dir = latLonToCartesian(lat, lon, 1).normalize();
-  camera.position.copy(dir.multiplyScalar(distance));
-  controls.update();
-}
-
-// --- Sélection drapeau ---
+// --- Raycaster ---
 const ray = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let hoveredFlag = null;
+
+// --- Caméra fluide ---
+let cameraTarget = null;
+let cameraStart = null;
+let cameraStartTime = null;
+const cameraDuration = 800;
+
+function focusLatLon(lat, lon, distance = 2.2) {
+  const targetPos = latLonToCartesian(lat, lon, distance).applyAxisAngle(new THREE.Vector3(0,1,0), earth.rotation.y);
+  cameraStart = camera.position.clone();
+  cameraTarget = targetPos.clone();
+  cameraStartTime = performance.now();
+}
+
+function updateCamera() {
+  if (cameraTarget && cameraStart) {
+    const t = Math.min((performance.now() - cameraStartTime)/cameraDuration, 1);
+    camera.position.lerpVectors(cameraStart, cameraTarget, t);
+    camera.lookAt(earth.position);
+    if (t>=1) cameraTarget=null;
+  }
+}
+
+// --- Drapeaux / survol ---
+renderer.domElement.addEventListener('mousemove', e => {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  ray.setFromCamera(mouse, camera);
+  const hits = ray.intersectObjects(flags);
+  if (hits.length) {
+    const flag = hits[0].object;
+    if (hoveredFlag !== flag) {
+      if (hoveredFlag) hoveredFlag.scale.set(1,1,1);
+      flag.scale.set(1.5,1.5,1.5);
+      hoveredFlag = flag;
+    }
+  } else {
+    if (hoveredFlag) hoveredFlag.scale.set(1,1,1);
+    hoveredFlag = null;
+  }
+});
 
 renderer.domElement.addEventListener('click', e => {
   const rect = renderer.domElement.getBoundingClientRect();
@@ -136,36 +168,25 @@ renderer.domElement.addEventListener('click', e => {
   ray.setFromCamera(mouse, camera);
   const hits = ray.intersectObjects(flags);
   if (hits.length) showCountry(hits[0].object.userData.country);
-});
 
-// --- Hover drapeaux ---
-renderer.domElement.addEventListener('mousemove', e => {
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  ray.setFromCamera(mouse, camera);
-  const hits = ray.intersectObjects(flags);
-
-  if (hits.length) {
-    const flag = hits[0].object;
-    if (hoveredFlag !== flag) {
-      if (hoveredFlag) hoveredFlag.scale.set(1, 1, 1);
-      flag.scale.set(1.5, 1.5, 1.5);
-      hoveredFlag = flag;
+  // Quiz check (seulement sur drapeau)
+  if (window.quizCountry && hits.length) {
+    if (hits[0].object.userData.country.name.common === window.quizCountry.name.common) {
+      alert('✅ Correct !');
+      startQuiz();
+    } else {
+      alert('❌ Faux, essaie encore !');
     }
-  } else {
-    if (hoveredFlag) hoveredFlag.scale.set(1, 1, 1);
-    hoveredFlag = null;
   }
 });
 
-// --- Affichage d'un pays ---
+// --- Affichage pays ---
 function showCountry(c) {
   infoName.textContent = c.name.common;
   infoDetails.innerHTML = `Capitale: ${c.capital ? c.capital[0] : '—'}<br>Région: ${c.region}<br>Population: ${c.population.toLocaleString()}`;
-  infoSummary.textContent = 'Chargement infos...';
-  map.setView(c.latlng, 4);
-  focusLatLon(c.latlng[0], c.latlng[1]);
+  infoSummary.textContent = 'Recherche infos sur Internet...';
+  if (c.latlng) map.setView(c.latlng, 4);
+  if (c.latlng) focusLatLon(c.latlng[0], c.latlng[1]);
   window.__selectedCountry = c;
 }
 
@@ -180,21 +201,18 @@ searchInput.addEventListener('input', e => {
 aiBtn.addEventListener('click', async () => {
   const c = window.__selectedCountry;
   if (!c) return alert('Sélectionnez un pays.');
-  infoSummary.textContent = 'Recherche infos sur Internet...';
   try {
     const title = encodeURIComponent(c.name.common);
     const url = `https://fr.wikipedia.org/api/rest_v1/page/summary/${title}`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Pas de résumé trouvé');
     const json = await res.json();
     infoSummary.textContent = json.extract || 'Aucun résumé trouvé.';
   } catch (err) {
-    console.error(err);
     infoSummary.textContent = 'Erreur lors de la recherche';
   }
 });
 
-// --- Synthèse vocale ---
+// --- TTS ---
 speakBtn.addEventListener('click', () => {
   const text = infoSummary.textContent;
   if ('speechSynthesis' in window) {
@@ -203,53 +221,67 @@ speakBtn.addEventListener('click', () => {
   }
 });
 
-// --- Géolocalisation utilisateur ---
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    const userMarker = new THREE.Mesh(
-      new THREE.SphereGeometry(0.02, 8, 8),
-      new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    );
-    userMarker.userData = { lat: latitude, lon: longitude };
-    scene.add(userMarker);
-    window.userMarker = userMarker;
-  });
+// --- Quiz ---
+const quizBtn = document.createElement('button');
+quizBtn.textContent = 'Quiz : trouve le pays';
+quizBtn.style.position = 'absolute';
+quizBtn.style.top = '10px';
+quizBtn.style.right = '10px';
+quizBtn.style.zIndex = '10';
+globeContainer.appendChild(quizBtn);
+quizBtn.addEventListener('click', startQuiz);
+
+function startQuiz() {
+  if (!countries.length) return;
+  const randomIndex = Math.floor(Math.random()*countries.length);
+  const c = countries[randomIndex];
+  window.quizCountry = c;
+  alert(`Clique sur le drapeau de : ${c.name.common}`);
 }
 
-// --- Options supplémentaires ---
-let autoRotate = true;
+// --- Rotation globe ---
+let rotating = true;
 const rotateBtn = document.createElement('button');
-rotateBtn.textContent = 'Pause rotation';
+rotateBtn.textContent = 'Stop / Start rotation';
 rotateBtn.style.position = 'absolute';
-rotateBtn.style.top = '10px';
+// Placé juste en dessous du bouton quiz
+rotateBtn.style.top = '50px'; // 10px + hauteur approximative du quiz + marge
 rotateBtn.style.right = '10px';
 rotateBtn.style.zIndex = '10';
-rotateBtn.style.padding = '6px 10px';
 globeContainer.appendChild(rotateBtn);
-rotateBtn.addEventListener('click', () => {
-  autoRotate = !autoRotate;
-  rotateBtn.textContent = autoRotate ? 'Pause rotation' : 'Reprendre rotation';
-});
+rotateBtn.addEventListener('click', () => rotating = !rotating);
 
-// --- Zoom slider bas ---
-const zoomSlider = document.createElement('input');
-zoomSlider.type = 'range';
-zoomSlider.min = 1.2;
-zoomSlider.max = 5;
-zoomSlider.step = 0.01;
-zoomSlider.value = 2;
-zoomSlider.style.position = 'absolute';
-zoomSlider.style.bottom = '10px';
-zoomSlider.style.left = '80%';
-zoomSlider.style.transform = 'translateX(-50%)';
-zoomSlider.style.zIndex = '10';
-zoomSlider.style.width = '150px';
-globeContainer.appendChild(zoomSlider);
-zoomSlider.addEventListener('input', () => {
-  const dir = camera.position.clone().normalize();
-  camera.position.copy(dir.multiplyScalar(parseFloat(zoomSlider.value)));
-});
+// --- Animate ---
+function animate() {
+  if (rotating) {
+    earth.rotation.y += 0.0003;
+    clouds.rotation.y += 0.0005;
+  }
+
+  // Drapeaux suivent globe
+  flags.forEach(flag => {
+    const { lat, lon } = flag.userData;
+    const pos = latLonToCartesian(lat, lon, 1.02);
+    pos.applyAxisAngle(new THREE.Vector3(0,1,0), earth.rotation.y);
+    flag.position.copy(pos);
+    flag.lookAt(pos.clone().multiplyScalar(2));
+  });
+
+  // Capitales suivent globe
+  capitalsDots.forEach(dot => {
+    const { lat, lon } = dot.userData;
+    const pos = latLonToCartesian(lat, lon, 1.01);
+    pos.applyAxisAngle(new THREE.Vector3(0,1,0), earth.rotation.y);
+    dot.position.copy(pos);
+  });
+
+  // Camera fluide
+  updateCamera();
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(animate);
 
 // --- Resize ---
 window.addEventListener('resize', () => {
@@ -257,43 +289,3 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(globeContainer.clientWidth, globeContainer.clientHeight);
 });
-
-// --- Animation ---
-function animate() {
-  if (autoRotate) {
-    earth.rotation.y += 0.0003;
-    clouds.rotation.y += 0.0005;
-  }
-
-  // Drapeaux suivent le globe
-  flags.forEach(flag => {
-    const { lat, lon } = flag.userData;
-    const pos = latLonToCartesian(lat, lon, 1.02);
-    const m = new THREE.Matrix4().makeRotationY(earth.rotation.y);
-    pos.applyMatrix4(m);
-    flag.position.copy(pos);
-    flag.lookAt(pos.clone().multiplyScalar(2));
-  });
-
-  // Capitales suivent le globe
-  capitalsDots.forEach(dot => {
-    const { lat, lon } = dot.userData;
-    const pos = latLonToCartesian(lat, lon, 1.01);
-    const m = new THREE.Matrix4().makeRotationY(earth.rotation.y);
-    pos.applyMatrix4(m);
-    dot.position.copy(pos);
-  });
-
-  // Marqueur utilisateur suit le globe
-  if (window.userMarker) {
-    const { lat, lon } = window.userMarker.userData;
-    const pos = latLonToCartesian(lat, lon, 1.02);
-    const m = new THREE.Matrix4().makeRotationY(earth.rotation.y);
-    pos.applyMatrix4(m);
-    window.userMarker.position.copy(pos);
-  }
-
-  controls.update();
-  renderer.render(scene, camera);
-}
-renderer.setAnimationLoop(animate);
