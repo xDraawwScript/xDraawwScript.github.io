@@ -168,16 +168,49 @@ renderer.domElement.addEventListener('click', e => {
   ray.setFromCamera(mouse, camera);
   const hits = ray.intersectObjects(flags);
   if (hits.length) showCountry(hits[0].object.userData.country);
+// Feedback image
+  const feedbackImg = document.createElement('img');
+feedbackImg.style.position='absolute';
+feedbackImg.style.top='50%';
+feedbackImg.style.left='60%';
+feedbackImg.style.transform='translate(-50%, -50%)';
+feedbackImg.style.width='100px';
+feedbackImg.style.height='80px';
+feedbackImg.style.display='none';
+feedbackImg.style.zIndex='20';
+globeContainer.appendChild(feedbackImg);
+
+
 
   // Quiz check (seulement sur drapeau)
   if (window.quizCountry && hits.length) {
+      feedbackImg.src='https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXZqbzJmbzlmeHVrNnBxcXkyaXZwYXFma205ajN5M2Q3N2Rrc2pvcyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9lYe8xarvZiZrHxzg6/giphy.gif';
+      feedbackImg.style.display='block';
+      setTimeout(()=>feedbackImg.style.display='none', 4500);
     if (hits[0].object.userData.country.name.common === window.quizCountry.name.common) {
       alert('✅ Correct !');
+
       startQuiz();
     } else {
+      feedbackImg.src='https://starecat.com/content/wp-content/uploads/sad-crying-dog-doge-meme-isolated-depressed-demotivated.jpg';
+      feedbackImg.style.display='block';
+      setTimeout(()=>feedbackImg.style.display='none', 1500);
       alert('❌ Faux, essaie encore !');
+            
     }
   }
+});
+const stopQuizBtn = document.createElement('button');
+stopQuizBtn.textContent = 'Stop Quiz';
+stopQuizBtn.style.position = 'absolute';
+stopQuizBtn.style.top = '90px'; // juste en dessous du bouton rotation
+stopQuizBtn.style.right = '10px';
+stopQuizBtn.style.zIndex = '10';
+globeContainer.appendChild(stopQuizBtn);
+
+stopQuizBtn.addEventListener('click', () => {
+  window.quizCountry = null;
+  alert('Quiz arrêté !');
 });
 
 // --- Affichage pays ---
